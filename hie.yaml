@@ -1,0 +1,13 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "wildptr-haskell:lib"
+
+    - path: "./app/Main.hs"
+      component: "wildptr-haskell:exe:wildptr-haskell-exe"
+
+    - path: "./app/Paths_wildptr_haskell.hs"
+      component: "wildptr-haskell:exe:wildptr-haskell-exe"
+
+    - path: "./test"
+      component: "wildptr-haskell:test:wildptr-haskell-test"
