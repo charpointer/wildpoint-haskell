@@ -35,7 +35,11 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , lens
+    , lens-aeson
+    , text
     , utf8-string
+    , wreq
   default-language: Haskell2010
 
 executable wildptr-haskell-exe
@@ -49,8 +53,12 @@ executable wildptr-haskell-exe
       aeson
     , base >=4.7 && <5
     , bytestring
+    , lens
+    , lens-aeson
+    , text
     , utf8-string
     , wildptr-haskell
+    , wreq
   default-language: Haskell2010
 
 test-suite wildptr-haskell-test
@@ -65,6 +73,10 @@ test-suite wildptr-haskell-test
       aeson
     , base >=4.7 && <5
     , bytestring
+    , lens
+    , lens-aeson
+    , text
     , utf8-string
     , wildptr-haskell
+    , wreq
   default-language: Haskell2010
