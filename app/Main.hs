@@ -1,9 +1,11 @@
 module Main where
 
+import Control.Monad
 import System.Environment (getArgs)
 import API 
     ( RFC,
       getAllRFCS,
+      printRFC,
       rfcFromJSON,
       rfcToJSON  )
 
@@ -16,15 +18,14 @@ showHelp = do
 listRFCs :: IO ()
 listRFCs = do
     putStrLn "Here are a list of all available RFCs"
-    rfcs <- getAllRFCS 
+    mapM_ printRFC =<< getAllRFCS
 
-    putStrLn $ show rfcs
-
-
+-- | Naive argument parsing, probably should replace
 handleArg :: String -> IO ()
-handleArg "--help" = showHelp
-handleArg "--list" = listRFCs
-handleArg _ = putStrLn "Unknown command"
+handleArg command = case command of 
+    "--help" -> showHelp
+    "--list" -> listRFCs
+    x        -> putStrLn ("Invalid command \"" ++ x ++ "\", try --help")
 
 main :: IO ()
 main = do

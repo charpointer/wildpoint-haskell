@@ -7,35 +7,41 @@
 module API (
     RFC,
     getAllRFCS,
+    printRFC,
     rfcToJSON,
     rfcFromJSON
 ) where
 
-import Data.ByteString.Lazy.Internal as BSL
+import qualified Data.ByteString.Lazy.Internal as BSL
+import qualified Data.HashMap.Strict as HM
+
+import Control.Lens ((^.))
+import Data.Foldable
+import Data.Maybe (fromMaybe)
 import Data.ByteString.Lazy (fromStrict)
-import Control.Lens ( (^.), (^..) )
 import Network.Wreq
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
-import Data.Aeson.Lens ( key, _String )
 import Data.Aeson
-    ( encode,
-      decode,
-      Value,
-      FromJSON(parseJSON),
-      ToJSON(toJSON, toEncoding),
-      pairs,
-      (.:),
+    ( object,
       withObject,
-      object,
-      KeyValue((.=)), eitherDecode )
+      fromJSON,
+      (.:), (.:?),
+      pairs,
+      decode,
+      encode,
+      KeyValue((.=)),
+      Result(Success),
+      Value(Array, Object),
+      FromJSON(parseJSON),
+      ToJSON(toJSON, toEncoding) )
 
 data RFC = RFC {
     -- | A single RFC entry has an id, status, date, info provided, and body
-      id :: Maybe String
+      id' :: String
     , status :: String
     , date :: String
     , infoProvided :: String
-    , lastUpdated :: String
+    , lastUpdated :: Maybe String
     , body :: Maybe String -- ^ this could be either Nothing or Just s
     } deriving (Show)
 
@@ -46,21 +52,42 @@ rfcToJSON = encode
 rfcFromJSON :: BSL.ByteString -> Maybe RFC
 rfcFromJSON json = decode json :: Maybe RFC
 
-getAllRFCS :: IO ()
+getAllRFCS :: IO [RFC]
 getAllRFCS = do
     r <- get "https://local.harry.city/wildpointer/data"
-    let body =  r ^.. responseBody . key "rfcs" . _String
-    -- Parse using Aeson
-    --let json = eitherDecode $ fromStrict . encodeUtf8 $ body :: Either String Value
-    --putStrLn ("Body is " ++ show (r ^. responseBody))
-    putStrLn $ show body
-    --putStrLn $ show json
+    let body = r ^. responseBody
+
+    -- Hack until application/json is fixed
+    let cbt = decode body :: Maybe Value
+
+    let rfcs = case cbt of
+            Just (Object o) -> case HM.lookup "rfcs" o of
+                Just (Array xs) -> (case traverse fromJSON $ toList xs of
+                    Success rs -> rs) :: [RFC]
+    return rfcs
+
+-- | Print an RFC entry out
+printRFC :: RFC -> IO ()
+printRFC rfc = do
+    let updated = fromMaybe "Never" $ lastUpdated rfc
+
+    putStrLn ("ID: " ++ id' rfc)
+    putStrLn ("Status: " ++ status rfc)
+    putStrLn ("Date: " ++ date rfc)
+    putStrLn ("Info Provided: " ++ infoProvided rfc)
+    putStrLn ("Last Updated: " ++ updated)
+
+    case body rfc of 
+        Just b  -> putStrLn ("Body: " ++ b)
+        Nothing -> putStrLn ""
+
+    putStrLn "\n"
 
 instance ToJSON RFC where
     -- This generates a Value
-    toJSON (RFC id status date infoProvided lastUpdated body) =
+    toJSON (RFC id' status date infoProvided lastUpdated body) =
         object [
-              "id"              .= id
+              "id"              .= id'
             , "status"          .= status
             , "date"            .= date
             , "info_provided"   .= infoProvided
@@ -68,9 +95,9 @@ instance ToJSON RFC where
             , "body"            .= body
         ]
 
-    toEncoding (RFC id status date infoProvided lastUpdated body) =
+    toEncoding (RFC id' status date infoProvided lastUpdated body) =
         pairs (
-               "id"             .= id
+               "id"             .= id'
             <> "status"         .= status
             <> "date"           .= date
             <> "info_provided"  .= infoProvided
@@ -84,5 +111,5 @@ instance FromJSON RFC where
         <*> v .: "status"
         <*> v .: "date"
         <*> v .: "info_provided"
-        <*> v .: "last_updated"
-        <*> v .: "body"
+        <*> v .:? "last_updated"
+        <*> v .:? "body"
