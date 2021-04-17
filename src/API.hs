@@ -6,6 +6,7 @@
 
 module API (
     RFC,
+    getRFC,
     getAllRFCS,
     printRFC,
     rfcToJSON,
@@ -17,7 +18,7 @@ import qualified Data.HashMap.Strict as HM
 
 import Control.Lens ((^.))
 import Data.Foldable
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 import Data.ByteString.Lazy (fromStrict)
 import Network.Wreq
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
@@ -65,6 +66,9 @@ getAllRFCS = do
                 Just (Array xs) -> (case traverse fromJSON $ toList xs of
                     Success rs -> rs) :: [RFC]
     return rfcs
+
+getRFC :: String -> IO (Maybe RFC)
+getRFC rfc = listToMaybe . filter (\r -> id' r == rfc) <$> getAllRFCS
 
 -- | Print an RFC entry out
 printRFC :: RFC -> IO ()
